@@ -4,349 +4,980 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>AxisLab — Engineering Intelligence</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:#020408;
+  --white:#f0f4ff;
+  --cyan:#00d4ff;
+  --purple:#7c3aed;
+  --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+}
+*{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:#04080f;color:#e2e8f0;font-family:'IBM Plex Sans',sans-serif;overflow-x:hidden}
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:#04080f}
-::-webkit-scrollbar-thumb{background:#0f2a40;border-radius:2px}
+body{
+  background:var(--black);
+  color:var(--white);
+  font-family:'DM Sans',sans-serif;
+  overflow-x:hidden;
+  cursor:none;
+}
 
-@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-@keyframes glow{0%,100%{text-shadow:0 0 20px #00d4ff44}50%{text-shadow:0 0 40px #00d4ff88,0 0 80px #00d4ff22}}
-@keyframes pulse{0%,100%{opacity:.4;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
-@keyframes scanH{0%{transform:translateX(-100%)}100%{transform:translateX(100vw)}}
-@keyframes borderAnim{0%,100%{border-color:#00d4ff22}50%{border-color:#00d4ff66}}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* ---- CURSOR ---- */
+#cursor{
+  position:fixed;width:12px;height:12px;
+  background:var(--cyan);border-radius:50%;
+  pointer-events:none;z-index:9999;
+  transform:translate(-50%,-50%);
+  transition:transform .1s,width .3s,height .3s,background .3s;
+  mix-blend-mode:difference;
+}
+#cursor-ring{
+  position:fixed;width:40px;height:40px;
+  border:1px solid rgba(0,212,255,.4);
+  border-radius:50%;pointer-events:none;z-index:9998;
+  transform:translate(-50%,-50%);
+  transition:all .15s ease;
+}
+body:has(a:hover) #cursor,body:has(button:hover) #cursor{width:24px;height:24px;background:var(--white)}
+body:has(a:hover) #cursor-ring,body:has(button:hover) #cursor-ring{width:60px;height:60px;border-color:rgba(255,255,255,.3)}
 
-/* GRID BG */
-.grid-bg{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.035}
+/* ---- LOADER ---- */
+#loader{
+  position:fixed;inset:0;z-index:10000;
+  background:var(--black);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:24px;
+}
+.loader-logo{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(32px,6vw,64px);
+  font-weight:800;letter-spacing:-2px;
+  color:var(--white);opacity:0;
+}
+.loader-logo span{color:var(--cyan)}
+.loader-bar{
+  width:200px;height:1px;
+  background:rgba(255,255,255,.1);
+  position:relative;overflow:hidden;
+}
+.loader-bar::after{
+  content:'';position:absolute;
+  left:-100%;top:0;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  animation:barScan 1.5s ease forwards;
+}
+.loader-pct{
+  font-family:'DM Mono',monospace;
+  font-size:12px;color:rgba(255,255,255,.4);
+  letter-spacing:3px;
+}
+@keyframes barScan{to{left:100%}}
 
-/* SCANLINE */
-.scanline{position:fixed;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,#00d4ff33 50%,transparent 100%);animation:scanH 10s linear infinite;pointer-events:none;z-index:100}
+/* ---- NAV ---- */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:24px 48px;
+  display:flex;align-items:center;justify-content:space-between;
+  opacity:0;
+}
+.nav-logo{
+  font-family:'Syne',sans-serif;
+  font-size:18px;font-weight:800;
+  letter-spacing:-0.5px;color:var(--white);
+  text-decoration:none;
+}
+.nav-logo span{color:var(--cyan)}
+.nav-links{display:flex;gap:40px;align-items:center}
+.nav-links a{
+  font-size:12px;letter-spacing:2px;
+  color:rgba(255,255,255,.4);
+  text-decoration:none;font-family:'DM Mono',monospace;
+  transition:color .3s;
+}
+.nav-links a:hover{color:var(--cyan)}
+.nav-cta{
+  padding:10px 24px;
+  border:1px solid rgba(0,212,255,.3);
+  border-radius:100px;
+  color:var(--cyan)!important;
+  transition:all .3s!important;
+  background:rgba(0,212,255,.05);
+}
+.nav-cta:hover{background:rgba(0,212,255,.1)!important;border-color:var(--cyan)!important}
 
-/* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:90;padding:0 24px;transition:all .3s;border-bottom:1px solid transparent}
-nav.scrolled{border-bottom:1px solid #0a1f33;background:rgba(4,8,15,.97);backdrop-filter:blur(20px)}
-.nav-inner{max-width:1100px;margin:0 auto;height:64px;display:flex;align-items:center;justify-content:space-between}
-.logo{display:flex;align-items:center;gap:12px;cursor:pointer;text-decoration:none}
-.logo-icon{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#003d55,#006a8a);border:1px solid #00d4ff33;display:flex;align-items:center;justify-content:center}
-.logo-text{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:#e2f4ff;letter-spacing:3px}
-.logo-text span{color:#00d4ff}
-.nav-links{display:flex;gap:28px;align-items:center}
-.nav-links a{color:#4a7a9a;font-size:11px;letter-spacing:3px;font-family:'IBM Plex Mono',monospace;cursor:pointer;text-decoration:none;transition:color .2s}
-.nav-links a:hover{color:#00d4ff}
-.nav-cta{padding:8px 18px;background:linear-gradient(135deg,#003d55,#006a8a);border:1px solid #00d4ff44;border-radius:6px;color:#00d4ff;font-size:11px;font-family:'IBM Plex Mono',monospace;letter-spacing:2px;cursor:pointer;text-decoration:none;transition:all .2s}
-.nav-cta:hover{box-shadow:0 4px 20px #00d4ff22;transform:translateY(-1px)}
+/* ---- GRAIN OVERLAY ---- */
+.grain{
+  position:fixed;inset:0;z-index:1;
+  pointer-events:none;opacity:.35;
+  background-image:var(--grain);
+  background-size:256px;
+  animation:grainMove 1s steps(2) infinite;
+}
+@keyframes grainMove{
+  0%{transform:translate(0,0)}
+  25%{transform:translate(-2px,2px)}
+  50%{transform:translate(2px,-2px)}
+  75%{transform:translate(-1px,-1px)}
+  100%{transform:translate(1px,1px)}
+}
 
-/* HAMBURGER */
-.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;background:none;border:none}
-.hamburger span{display:block;width:22px;height:2px;background:#4a7a9a;border-radius:2px;transition:all .3s}
-.hamburger.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px);background:#00d4ff}
-.hamburger.open span:nth-child(2){opacity:0}
-.hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px);background:#00d4ff}
+/* ---- HERO ---- */
+#hero{
+  min-height:100vh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:120px 48px 80px;
+  position:relative;z-index:2;
+  text-align:center;overflow:hidden;
+}
+.hero-eyebrow{
+  font-family:'DM Mono',monospace;
+  font-size:11px;letter-spacing:5px;
+  color:var(--cyan);opacity:.7;
+  margin-bottom:32px;
+}
+.hero-title{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(48px,9vw,130px);
+  font-weight:800;line-height:.92;
+  letter-spacing:-4px;
+  color:var(--white);
+  margin-bottom:40px;
+}
+.hero-title .outline{
+  -webkit-text-stroke:1px rgba(255,255,255,.3);
+  color:transparent;
+}
+.hero-title .cyan{color:var(--cyan)}
+.hero-sub{
+  font-size:clamp(14px,1.5vw,18px);
+  color:rgba(255,255,255,.4);
+  font-weight:300;line-height:1.8;
+  max-width:500px;margin:0 auto 56px;
+}
+.hero-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.btn-glow{
+  padding:16px 40px;
+  background:var(--cyan);
+  border:none;border-radius:100px;
+  color:var(--black);
+  font-family:'Syne',sans-serif;
+  font-size:13px;font-weight:700;
+  letter-spacing:1px;cursor:none;
+  text-decoration:none;
+  box-shadow:0 0 40px rgba(0,212,255,.4),0 0 80px rgba(0,212,255,.15);
+  transition:all .3s;
+}
+.btn-glow:hover{box-shadow:0 0 60px rgba(0,212,255,.6),0 0 120px rgba(0,212,255,.3);transform:translateY(-2px)}
+.btn-outline{
+  padding:16px 40px;
+  background:transparent;
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:100px;color:rgba(255,255,255,.6);
+  font-family:'Syne',sans-serif;
+  font-size:13px;font-weight:700;
+  letter-spacing:1px;cursor:none;
+  text-decoration:none;
+  transition:all .3s;
+}
+.btn-outline:hover{border-color:rgba(255,255,255,.4);color:var(--white)}
 
-/* MOBILE MENU */
-.mobile-menu{display:none;position:fixed;top:64px;left:0;right:0;z-index:89;background:rgba(4,8,15,.98);backdrop-filter:blur(20px);border-bottom:1px solid #0a1f33;padding:24px 32px 32px;animation:fadeIn .2s ease}
-.mobile-menu a{display:block;padding:16px 0;border-bottom:1px solid #080e18;font-size:13px;color:#4a7a9a;font-family:'IBM Plex Mono',monospace;letter-spacing:3px;cursor:pointer;text-decoration:none}
-.mobile-menu a:hover{color:#00d4ff}
-.mobile-menu .mob-cta{margin-top:20px;width:100%;padding:14px;background:linear-gradient(135deg,#003d55,#006a8a);border:1px solid #00d4ff44;border-radius:8px;color:#00d4ff;font-size:11px;font-family:'Orbitron',monospace;letter-spacing:3px;cursor:pointer;text-align:center;display:block;text-decoration:none}
+/* Hero orb */
+.hero-orb{
+  position:absolute;
+  border-radius:50%;filter:blur(80px);
+  pointer-events:none;
+}
+.orb1{width:600px;height:600px;background:radial-gradient(circle,rgba(0,212,255,.12),transparent 70%);top:-100px;left:50%;transform:translateX(-50%)}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(124,58,237,.1),transparent 70%);bottom:0;right:-100px}
+.orb3{width:300px;height:300px;background:radial-gradient(circle,rgba(0,212,255,.06),transparent 70%);bottom:100px;left:-50px}
 
-/* SECTIONS */
-section{position:relative;z-index:1}
-.container{max-width:1100px;margin:0 auto;padding:0 24px}
-.section-tag{font-size:10px;color:#00d4ff;letter-spacing:5px;font-family:'IBM Plex Mono',monospace;margin-bottom:16px}
-.section-title{font-family:'Orbitron',monospace;font-size:clamp(24px,4vw,42px);font-weight:900;color:#e2f4ff;line-height:1.2;margin-bottom:32px}
+/* Hero scroll indicator */
+.scroll-hint{
+  position:absolute;bottom:40px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  opacity:.3;animation:scrollBounce 2s ease-in-out infinite;
+}
+.scroll-hint span{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:4px;color:var(--white)}
+.scroll-hint svg{color:var(--white)}
+@keyframes scrollBounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(8px)}}
 
-/* HERO */
-#hero{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:100px 24px 60px;text-align:center}
-.hero-glow{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,#00d4ff08 0%,transparent 70%);pointer-events:none}
-.hero-badge{display:inline-flex;align-items:center;gap:10px;border:1px solid #00d4ff22;border-radius:100px;padding:6px 18px;margin-bottom:40px;background:rgba(0,212,255,.04);animation:borderAnim 4s ease-in-out infinite}
-.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:#00d4ff;animation:pulse 2s infinite}
-.hero-badge span{font-size:11px;color:#00d4ff;font-family:'IBM Plex Mono',monospace;letter-spacing:3px}
-.hero-title{font-family:'Orbitron',monospace;font-size:clamp(28px,6vw,68px);font-weight:900;line-height:1.1;letter-spacing:-1px;margin-bottom:24px;animation:glow 4s ease-in-out infinite}
-.hero-title .white{color:#e2f4ff}
-.hero-title .gradient{background:linear-gradient(135deg,#00d4ff,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hero-desc{font-size:clamp(13px,2vw,17px);color:#4a7a9a;line-height:1.8;max-width:600px;margin:0 auto 48px;font-weight:300}
-.hero-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:80px}
-.btn-primary{padding:14px 36px;background:linear-gradient(135deg,#003d55,#006a8a);border:1px solid #00d4ff55;border-radius:10px;color:#00d4ff;font-size:12px;font-family:'Orbitron',monospace;letter-spacing:3px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;transition:all .2s;box-shadow:0 4px 20px #00d4ff11}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px #00d4ff22}
-.btn-secondary{padding:14px 36px;background:transparent;border:1px solid #0f2a40;border-radius:10px;color:#4a7a9a;font-size:12px;font-family:'Orbitron',monospace;letter-spacing:3px;cursor:pointer;text-decoration:none;display:inline-block;transition:all .2s}
-.btn-secondary:hover{border-color:#00d4ff44;color:#00d4ff}
-.hero-stats{display:flex;gap:48px;justify-content:center;flex-wrap:wrap}
-.stat-num{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;color:#00d4ff;margin-bottom:4px}
-.stat-label{font-size:10px;color:#2a4a6a;letter-spacing:3px;font-family:'IBM Plex Mono',monospace}
+/* ---- MARQUEE ---- */
+.marquee-wrap{
+  position:relative;z-index:2;
+  border-top:1px solid rgba(255,255,255,.06);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  padding:20px 0;overflow:hidden;
+  background:rgba(255,255,255,.02);
+}
+.marquee-track{
+  display:flex;gap:48px;
+  animation:marqueeAnim 20s linear infinite;
+  width:max-content;
+}
+.marquee-item{
+  font-family:'Syne',sans-serif;
+  font-size:13px;font-weight:700;
+  letter-spacing:4px;
+  color:rgba(255,255,255,.15);
+  white-space:nowrap;flex-shrink:0;
+}
+.marquee-item.accent{color:var(--cyan);opacity:.4}
+@keyframes marqueeAnim{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
-/* PLATFORM */
-#plataforma{padding:100px 24px}
-.arch-box{border:1px solid #0a1f33;border-radius:16px;background:rgba(0,0,0,.4);padding:40px 32px;overflow-x:auto;margin-top:48px}
-.arch-flow{display:flex;align-items:center;justify-content:center;gap:0;min-width:600px;flex-wrap:wrap}
-.arch-node{text-align:center;padding:16px 20px;border-radius:10px;min-width:120px}
-.arch-arrow{display:flex;align-items:center;padding:0 8px}
-.arch-arrow-line{width:20px;height:1px;background:#0f2a40}
-.arch-arrow-icon{color:#0f2a40;font-size:16px}
-.arch-note{text-align:center;margin-top:24px;font-size:11px;color:#1a3a5a;font-family:'IBM Plex Mono',monospace;letter-spacing:2px}
+/* ---- SECTIONS COMMON ---- */
+section{position:relative;z-index:2}
+.section-label{
+  font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:5px;
+  color:rgba(0,212,255,.6);
+  margin-bottom:24px;
+  display:flex;align-items:center;gap:16px;
+}
+.section-label::before{content:'';width:32px;height:1px;background:var(--cyan);opacity:.4}
+.section-title{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(36px,5vw,72px);
+  font-weight:800;line-height:1;
+  letter-spacing:-2px;
+  color:var(--white);
+}
 
-/* MODULES */
-#modulos{padding:100px 24px}
-.module-tabs{display:flex;gap:0;border-bottom:1px solid #0a1f33;overflow-x:auto;margin-bottom:32px}
-.module-tab{padding:12px 24px;border-bottom:2px solid transparent;opacity:.4;cursor:pointer;transition:all .2s;white-space:nowrap}
-.module-tab.active{opacity:1}
-.module-tab-name{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:2px}
-.module-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;animation:fadeIn .4s ease}
-.module-card{padding:32px;border-radius:16px}
-.module-icon{margin-bottom:20px;font-size:32px}
-.module-tag{font-size:10px;letter-spacing:4px;font-family:'IBM Plex Mono',monospace;margin-bottom:12px}
-.module-headline{font-family:'Orbitron',monospace;font-size:18px;font-weight:900;color:#e2f4ff;line-height:1.3;margin-bottom:16px}
-.module-desc{font-size:13px;color:#4a7a9a;line-height:1.8}
-.features-card{padding:32px;border:1px solid #0a1f33;border-radius:16px}
-.features-label{font-size:10px;color:#2a4a6a;letter-spacing:4px;font-family:'IBM Plex Mono',monospace;margin-bottom:20px}
-.feature-item{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #080e18;font-size:13px;color:#8aa4bc}
-.feature-item:last-child{border-bottom:none}
-.feature-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+/* ---- CINEMATIC PANELS ---- */
+.panels-wrap{padding:120px 0}
+.panel{
+  min-height:100vh;
+  display:flex;align-items:center;
+  padding:80px 48px;
+  position:relative;
+}
+.panel-inner{
+  max-width:1200px;margin:0 auto;width:100%;
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:80px;align-items:center;
+}
+.panel-inner.reverse{direction:rtl}
+.panel-inner.reverse>*{direction:ltr}
+.panel-text{max-width:480px}
+.panel-title{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(32px,4vw,56px);
+  font-weight:800;line-height:1.05;
+  letter-spacing:-2px;color:var(--white);
+  margin-bottom:24px;
+}
+.panel-desc{
+  font-size:16px;color:rgba(255,255,255,.45);
+  line-height:1.8;font-weight:300;
+  margin-bottom:32px;
+}
+.panel-features{display:flex;flex-direction:column;gap:12px}
+.panel-feat{
+  display:flex;align-items:center;gap:12px;
+  font-size:13px;color:rgba(255,255,255,.5);
+}
+.panel-feat::before{
+  content:'';width:4px;height:4px;
+  border-radius:50%;background:var(--cyan);
+  box-shadow:0 0 8px var(--cyan);
+  flex-shrink:0;
+}
 
-/* TECH */
-#tecnologia{padding:100px 24px;border-top:1px solid #080e18}
-.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:48px}
-.tech-card{padding:24px;border-radius:12px;cursor:default;transition:all .2s}
-.tech-card:hover{transform:translateY(-2px)}
-.tech-name{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;margin-bottom:8px;letter-spacing:1px}
-.tech-desc{font-size:12px;color:#2a4a6a}
+/* Glassmorphism cards */
+.glass-card{
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:24px;
+  padding:48px;
+  position:relative;
+  overflow:hidden;
+  backdrop-filter:blur(20px);
+}
+.glass-card::before{
+  content:'';position:absolute;
+  inset:0;border-radius:24px;
+  background:linear-gradient(135deg,rgba(255,255,255,.05) 0%,transparent 50%);
+  pointer-events:none;
+}
+.glass-card-glow{
+  position:absolute;
+  width:200px;height:200px;
+  border-radius:50%;filter:blur(60px);
+  pointer-events:none;
+}
 
-/* CONTACT */
-#contato{padding:120px 24px}
-.contact-box{max-width:700px;margin:0 auto;border:1px solid #0a1f33;border-radius:20px;padding:60px 48px;background:rgba(0,0,0,.5);position:relative;overflow:hidden;text-align:center;animation:borderAnim 4s ease-in-out infinite}
-.contact-glow{position:absolute;top:-30%;left:50%;transform:translateX(-50%);width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,#00d4ff06 0%,transparent 70%);pointer-events:none}
-.contact-tag{font-size:10px;color:#00d4ff;letter-spacing:5px;font-family:'IBM Plex Mono',monospace;margin-bottom:20px}
-.contact-title{font-family:'Orbitron',monospace;font-size:clamp(20px,4vw,34px);font-weight:900;color:#e2f4ff;margin-bottom:16px;line-height:1.3}
-.contact-desc{font-size:14px;color:#4a7a9a;line-height:1.8;margin-bottom:40px}
-.contact-links{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-top:24px}
-.contact-link{display:flex;align-items:center;gap:8px;font-size:12px;color:#2a4a6a;font-family:'IBM Plex Mono',monospace}
-.contact-link span{color:#00d4ff}
+/* ---- MODULE CARDS ---- */
+.modules-section{padding:120px 48px}
+.modules-grid{
+  max-width:1200px;margin:0 auto;
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:2px;margin-top:80px;
+}
+.module-card{
+  padding:56px 40px;
+  background:rgba(255,255,255,.02);
+  border:1px solid rgba(255,255,255,.06);
+  position:relative;overflow:hidden;
+  transition:all .5s cubic-bezier(.23,1,.32,1);
+  cursor:none;
+}
+.module-card:hover{
+  background:rgba(255,255,255,.04);
+  border-color:rgba(0,212,255,.2);
+  transform:translateY(-4px);
+  z-index:2;
+}
+.module-card::after{
+  content:'';position:absolute;
+  bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  opacity:0;transition:opacity .5s;
+}
+.module-card:hover::after{opacity:.6}
+.module-num{
+  font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:4px;
+  color:rgba(255,255,255,.2);
+  margin-bottom:32px;
+}
+.module-icon{
+  width:48px;height:48px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:24px;
+  transition:all .3s;
+}
+.module-card:hover .module-icon{border-color:rgba(0,212,255,.3);box-shadow:0 0 20px rgba(0,212,255,.1)}
+.module-name{
+  font-family:'Syne',sans-serif;
+  font-size:22px;font-weight:800;
+  color:var(--white);margin-bottom:16px;
+  letter-spacing:-0.5px;
+}
+.module-desc{font-size:14px;color:rgba(255,255,255,.35);line-height:1.7}
+.module-hover-glow{
+  position:absolute;
+  width:300px;height:300px;
+  border-radius:50%;filter:blur(60px);
+  background:rgba(0,212,255,.06);
+  top:-100px;right:-100px;
+  opacity:0;transition:opacity .5s;
+  pointer-events:none;
+}
+.module-card:hover .module-hover-glow{opacity:1}
 
-/* FOOTER */
-footer{border-top:1px solid #080e18;padding:32px;text-align:center;position:relative;z-index:1}
-.footer-logo{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px}
-.footer-copy{font-size:10px;color:#0f2a40;letter-spacing:3px;font-family:'IBM Plex Mono',monospace}
+/* ---- WORKFLOW ---- */
+.workflow-section{
+  padding:120px 48px;
+  background:linear-gradient(180deg,transparent,rgba(0,212,255,.02),transparent);
+}
+.workflow-inner{max-width:1000px;margin:0 auto}
+.workflow-steps{
+  display:flex;flex-direction:column;
+  gap:0;margin-top:80px;
+  position:relative;
+}
+.workflow-steps::before{
+  content:'';position:absolute;
+  left:23px;top:24px;bottom:24px;width:1px;
+  background:linear-gradient(180deg,var(--cyan),var(--purple),var(--cyan));
+  opacity:.2;
+}
+.workflow-step{
+  display:flex;gap:40px;
+  padding:48px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  position:relative;
+}
+.workflow-step:last-child{border-bottom:none}
+.step-dot{
+  width:48px;height:48px;
+  border-radius:50%;
+  border:1px solid rgba(0,212,255,.3);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  background:rgba(0,212,255,.05);
+  font-family:'DM Mono',monospace;
+  font-size:11px;color:var(--cyan);
+  letter-spacing:1px;
+  position:relative;z-index:1;
+}
+.step-content{}
+.step-title{
+  font-family:'Syne',sans-serif;
+  font-size:24px;font-weight:800;
+  color:var(--white);margin-bottom:12px;
+  letter-spacing:-0.5px;
+}
+.step-desc{font-size:14px;color:rgba(255,255,255,.35);line-height:1.8}
+.step-tag{
+  display:inline-block;
+  margin-top:16px;
+  padding:4px 12px;
+  border:1px solid rgba(0,212,255,.2);
+  border-radius:100px;
+  font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:2px;
+  color:rgba(0,212,255,.6);
+}
 
-/* CHAT WIDGET */
-.chat-widget{position:fixed;bottom:20px;right:20px;z-index:999}
-.chat-tooltip{position:absolute;bottom:68px;right:0;background:#060d16;border:1px solid #0a1f33;border-radius:12px 12px 3px 12px;padding:10px 14px;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.6);animation:fadeIn .4s ease}
-.chat-tooltip-close{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#0a1f33;border:1px solid #1a3a5a;color:#4a7a9a;font-size:9px;cursor:pointer;line-height:16px;text-align:center}
-.chat-tooltip-title{font-size:11px;color:#00d4ff;font-family:'Orbitron',monospace;letter-spacing:1px;margin-bottom:3px}
-.chat-tooltip-sub{font-size:11px;color:#4a7a9a}
-.chat-btn{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#003d55,#006a8a);border:1.5px solid #00d4ff55;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px #00d4ff22,0 0 40px #00d4ff11;transition:all .3s;font-family:'Orbitron',monospace;font-size:12px;font-weight:900;color:#00d4ff;letter-spacing:1px}
-.chat-btn:hover{box-shadow:0 6px 28px #00d4ff44}
-.chat-panel{position:absolute;bottom:68px;right:0;width:340px;height:480px;background:#04080f;border:1px solid #0a1f33;border-radius:16px;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 40px #00d4ff11;animation:fadeIn .3s ease;overflow:hidden}
-.chat-header{padding:14px 16px;border-bottom:1px solid #0a1f33;background:linear-gradient(135deg,#040c14,#060f1a);display:flex;align-items:center;justify-content:space-between}
-.chat-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#003d55,#006a8a);border:1.5px solid #00d4ff44;display:flex;align-items:center;justify-content:center;font-size:11px;color:#00d4ff;font-weight:800;font-family:'Orbitron',monospace}
-.chat-header-info{margin-left:10px;flex:1}
-.chat-header-name{font-size:11px;font-weight:700;color:#00d4ff;font-family:'Orbitron',monospace;letter-spacing:2px}
-.chat-header-status{display:flex;align-items:center;gap:5px;margin-top:2px}
-.online-dot{width:5px;height:5px;border-radius:50%;background:#10b981;box-shadow:0 0 6px #10b981}
-.online-text{font-size:9px;color:#10b981;font-family:'IBM Plex Mono',monospace;letter-spacing:1px}
-.chat-close{background:none;border:none;color:#2a4a6a;font-size:18px;cursor:pointer;line-height:1;padding:4px}
-.chat-messages{flex:1;overflow-y:auto;padding:16px 14px}
-.chat-messages::-webkit-scrollbar{width:3px}
-.chat-messages::-webkit-scrollbar-thumb{background:#0a1f33}
-.msg-wrap{display:flex;gap:8px;margin-bottom:14px;align-items:flex-start}
-.msg-wrap.user{flex-direction:row-reverse}
-.msg-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#003d55,#006a8a);border:1px solid #00d4ff33;display:flex;align-items:center;justify-content:center;font-size:8px;color:#00d4ff;font-weight:800;font-family:'Orbitron',monospace;flex-shrink:0}
-.msg-bubble{max-width:82%;padding:9px 12px;font-size:12px;line-height:1.65;font-family:'IBM Plex Sans',sans-serif;white-space:pre-wrap;position:relative}
-.msg-bubble.ae{background:#080f1a;border:1px solid #0a1a2a;border-radius:3px 12px 12px 12px;color:#c8dae8;border-left:2px solid #00d4ff;padding-left:10px}
-.msg-bubble.user{background:linear-gradient(135deg,#0a1628,#0d1f3c);border:1px solid #1e3a5f;border-radius:12px 3px 12px 12px;color:#94b8d4}
-.typing-dots{display:flex;gap:4px;align-items:center;padding:4px 0}
-.typing-dot{width:5px;height:5px;border-radius:50%;background:#00d4ff;animation:pulse 1.2s infinite}
-.chat-input-area{padding:12px 14px;border-top:1px solid #080e18}
-.chat-input-wrap{display:flex;gap:8px;align-items:center;background:#080f1a;border:1px solid #0f2a40;border-radius:10px;padding:8px 12px}
-.chat-input{flex:1;background:none;border:none;outline:none;color:#94b8d4;font-size:12px;font-family:'IBM Plex Sans',sans-serif}
-.chat-input::placeholder{color:#1a3a5a}
-.chat-send{width:28px;height:28px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;border:1px solid #0f2033;background:transparent;transition:all .2s;flex-shrink:0}
-.chat-send.active{background:linear-gradient(135deg,#003d55,#006a8a);border-color:#00d4ff44}
+/* ---- STATS ---- */
+.stats-section{padding:120px 48px}
+.stats-inner{
+  max-width:1200px;margin:0 auto;
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:24px;overflow:hidden;
+}
+.stat-item{
+  padding:56px 40px;
+  background:rgba(255,255,255,.02);
+  position:relative;overflow:hidden;
+  transition:background .3s;
+}
+.stat-item:hover{background:rgba(255,255,255,.04)}
+.stat-num{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(40px,4vw,64px);
+  font-weight:800;color:var(--white);
+  letter-spacing:-3px;line-height:1;
+  margin-bottom:8px;
+}
+.stat-num .unit{color:var(--cyan);font-size:.6em}
+.stat-label{font-size:12px;color:rgba(255,255,255,.3);letter-spacing:1px;line-height:1.6}
 
-/* ANIMATIONS ON SCROLL */
-.reveal{opacity:0;transform:translateY(32px);transition:opacity .7s ease,transform .7s ease}
+/* ---- CTA ---- */
+.cta-section{
+  padding:160px 48px;
+  text-align:center;
+  position:relative;overflow:hidden;
+}
+.cta-bg{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 50%,rgba(0,212,255,.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.cta-title{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(48px,8vw,110px);
+  font-weight:800;line-height:.9;
+  letter-spacing:-4px;
+  color:var(--white);
+  margin-bottom:40px;
+}
+.cta-title .outline{
+  -webkit-text-stroke:1px rgba(255,255,255,.2);
+  color:transparent;
+}
+.cta-sub{
+  font-size:16px;color:rgba(255,255,255,.35);
+  max-width:400px;margin:0 auto 56px;
+  line-height:1.7;
+}
+
+/* ---- FOOTER ---- */
+footer{
+  padding:48px;
+  border-top:1px solid rgba(255,255,255,.06);
+  display:flex;align-items:center;justify-content:space-between;
+  position:relative;z-index:2;
+}
+.footer-logo{
+  font-family:'Syne',sans-serif;
+  font-size:16px;font-weight:800;
+  letter-spacing:-0.5px;color:var(--white);
+}
+.footer-logo span{color:var(--cyan)}
+.footer-copy{
+  font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:2px;
+  color:rgba(255,255,255,.15);
+}
+
+/* ---- CHAT WIDGET ---- */
+.chat-widget{position:fixed;bottom:32px;right:32px;z-index:500}
+.chat-tooltip{
+  position:absolute;bottom:72px;right:0;
+  background:rgba(6,13,22,.95);
+  border:1px solid rgba(0,212,255,.15);
+  border-radius:16px 16px 4px 16px;
+  padding:12px 16px;white-space:nowrap;
+  backdrop-filter:blur(20px);
+  box-shadow:0 20px 40px rgba(0,0,0,.4);
+}
+.chat-tooltip-close{
+  position:absolute;top:-8px;right:-8px;
+  width:18px;height:18px;border-radius:50%;
+  background:#0a1628;border:1px solid rgba(255,255,255,.1);
+  color:rgba(255,255,255,.4);font-size:10px;
+  cursor:none;line-height:18px;text-align:center;
+}
+.chat-tooltip-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:2px}
+.chat-tooltip-sub{font-size:11px;color:rgba(255,255,255,.4);font-family:'DM Sans',sans-serif}
+.chat-btn{
+  width:60px;height:60px;border-radius:50%;
+  background:linear-gradient(135deg,#003d55,#006a8a);
+  border:1px solid rgba(0,212,255,.4);
+  display:flex;align-items:center;justify-content:center;
+  cursor:none;
+  box-shadow:0 0 40px rgba(0,212,255,.2),0 8px 32px rgba(0,0,0,.4);
+  transition:all .3s;
+  font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--cyan);letter-spacing:1px;
+}
+.chat-btn:hover{box-shadow:0 0 60px rgba(0,212,255,.4),0 8px 40px rgba(0,0,0,.6);transform:scale(1.05)}
+.chat-panel{
+  position:absolute;bottom:80px;right:0;
+  width:360px;height:500px;
+  background:rgba(4,8,15,.97);
+  border:1px solid rgba(0,212,255,.12);
+  border-radius:20px;
+  display:flex;flex-direction:column;
+  backdrop-filter:blur(40px);
+  box-shadow:0 40px 80px rgba(0,0,0,.8),0 0 60px rgba(0,212,255,.08);
+  overflow:hidden;
+}
+.chat-header{
+  padding:16px 20px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  background:rgba(0,212,255,.03);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.chat-av{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,#003d55,#006a8a);
+  border:1px solid rgba(0,212,255,.3);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:10px;font-weight:800;color:var(--cyan);
+}
+.chat-hname{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--cyan);letter-spacing:1px}
+.chat-hstatus{display:flex;align-items:center;gap:5px;margin-top:2px}
+.online-dot{width:5px;height:5px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;animation:pulseDot 2s infinite}
+@keyframes pulseDot{0%,100%{opacity:.6}50%{opacity:1}}
+.online-text{font-family:'DM Mono',monospace;font-size:9px;color:#10b981;letter-spacing:1px}
+.chat-close-btn{background:none;border:none;color:rgba(255,255,255,.3);font-size:18px;cursor:none;transition:color .2s}
+.chat-close-btn:hover{color:var(--white)}
+.chat-msgs{flex:1;overflow-y:auto;padding:16px}
+.chat-msgs::-webkit-scrollbar{width:2px}
+.chat-msgs::-webkit-scrollbar-thumb{background:rgba(0,212,255,.2)}
+.msg-row{display:flex;gap:8px;margin-bottom:16px;align-items:flex-start}
+.msg-row.user{flex-direction:row-reverse}
+.msg-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#003d55,#006a8a);border:1px solid rgba(0,212,255,.2);display:flex;align-items:center;justify-content:center;font-size:8px;font-family:'Syne',sans-serif;font-weight:800;color:var(--cyan);flex-shrink:0}
+.msg-bubble{
+  max-width:78%;padding:10px 14px;
+  font-size:12px;line-height:1.65;
+  font-family:'DM Sans',sans-serif;
+  white-space:pre-wrap;
+}
+.msg-bubble.ae{
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:4px 16px 16px 16px;
+  color:rgba(255,255,255,.8);
+  border-left:2px solid rgba(0,212,255,.4);
+}
+.msg-bubble.user{
+  background:rgba(0,212,255,.08);
+  border:1px solid rgba(0,212,255,.15);
+  border-radius:16px 4px 16px 16px;
+  color:rgba(255,255,255,.7);
+}
+.typing{display:flex;gap:4px;padding:4px 0}
+.typing span{width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:typingDot 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes typingDot{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+.chat-input-wrap{
+  padding:12px 16px;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.chat-input-inner{
+  display:flex;gap:10px;align-items:center;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:10px 14px;
+  transition:border-color .3s;
+}
+.chat-input-inner:focus-within{border-color:rgba(0,212,255,.3)}
+.chat-input{
+  flex:1;background:none;border:none;outline:none;
+  color:rgba(255,255,255,.7);font-size:12px;
+  font-family:'DM Sans',sans-serif;
+}
+.chat-input::placeholder{color:rgba(255,255,255,.2)}
+.chat-send{
+  width:28px;height:28px;border-radius:8px;
+  background:transparent;border:1px solid rgba(255,255,255,.1);
+  cursor:none;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;flex-shrink:0;
+}
+.chat-send.active{background:rgba(0,212,255,.15);border-color:rgba(0,212,255,.4)}
+
+/* SCROLL REVEAL */
+.reveal{opacity:0;transform:translateY(40px);transition:opacity .9s cubic-bezier(.23,1,.32,1),transform .9s cubic-bezier(.23,1,.32,1)}
 .reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-left{opacity:0;transform:translateX(-40px);transition:opacity .9s cubic-bezier(.23,1,.32,1),transform .9s cubic-bezier(.23,1,.32,1)}
+.reveal-left.visible{opacity:1;transform:translateX(0)}
+.reveal-right{opacity:0;transform:translateX(40px);transition:opacity .9s cubic-bezier(.23,1,.32,1),transform .9s cubic-bezier(.23,1,.32,1)}
+.reveal-right.visible{opacity:1;transform:translateX(0)}
 
 /* RESPONSIVE */
-@media(max-width:768px){
+@media(max-width:900px){
+  nav{padding:20px 24px}
   .nav-links{display:none}
-  .hamburger{display:flex}
-  #hero{padding:100px 20px 60px}
-  .hero-btns{flex-direction:column;align-items:center}
-  .hero-stats{gap:28px}
-  #plataforma,#modulos,#tecnologia{padding:60px 20px}
-  #contato{padding:60px 20px}
-  .arch-box{padding:24px 16px}
-  .module-grid{grid-template-columns:1fr}
-  .tech-grid{grid-template-columns:1fr 1fr}
-  .contact-box{padding:40px 24px}
-  .chat-panel{width:300px}
-}
-@media(max-width:480px){
-  .tech-grid{grid-template-columns:1fr}
-  .hero-stats{gap:20px}
-  .contact-links{gap:16px}
+  #hero{padding:100px 24px 80px}
+  .hero-title{letter-spacing:-2px}
+  .panel{padding:60px 24px}
+  .panel-inner{grid-template-columns:1fr;gap:48px}
+  .panel-inner.reverse{direction:ltr}
+  .modules-section{padding:80px 24px}
+  .modules-grid{grid-template-columns:1fr;gap:2px}
+  .workflow-section,.stats-section{padding:80px 24px}
+  .stats-inner{grid-template-columns:1fr 1fr}
+  .cta-section{padding:100px 24px}
+  .cta-title{letter-spacing:-2px}
+  footer{flex-direction:column;gap:16px;text-align:center;padding:32px 24px}
+  .chat-panel{width:320px}
 }
 </style>
 </head>
 <body>
 
-<!-- Grid background -->
-<svg class="grid-bg" xmlns="http://www.w3.org/2000/svg">
-  <defs><pattern id="g" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M 48 0 L 0 0 0 48" fill="none" stroke="#00d4ff" stroke-width="0.5"/></pattern></defs>
-  <rect width="100%" height="100%" fill="url(#g)"/>
-</svg>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<div class="grain"></div>
 
-<div class="scanline"></div>
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-logo">AXIS<span>LAB</span></div>
+  <div class="loader-bar"></div>
+  <div class="loader-pct" id="loader-pct">INITIALIZING</div>
+</div>
 
 <!-- NAV -->
 <nav id="navbar">
-  <div class="nav-inner">
-    <a class="logo" href="#">
-      <div class="logo-icon">
-        <svg width="20" height="20" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-          <defs><linearGradient id="lg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ffffff"/><stop offset="100%" style="stop-color:#00d4ff"/></linearGradient></defs>
-          <g transform="translate(78,100)"><circle cx="0" cy="0" r="36" stroke="url(#lg1)" stroke-width="2" fill="none"/><circle cx="0" cy="0" r="10" stroke="#00d4ff" stroke-width="2" fill="rgba(0,212,255,0.15)"/><line x1="-10" y1="0" x2="10" y2="0" stroke="url(#lg1)" stroke-width="1.5"/><line x1="0" y1="-10" x2="0" y2="10" stroke="url(#lg1)" stroke-width="1.5"/>
-          <g transform="rotate(0)"><rect x="-3" y="-42" width="6" height="7" rx="1" stroke="url(#lg1)" stroke-width="1.2" fill="none"/></g>
-          <g transform="rotate(45)"><rect x="-3" y="-42" width="6" height="7" rx="1" stroke="url(#lg1)" stroke-width="1.2" fill="none"/></g>
-          <g transform="rotate(90)"><rect x="-3" y="-42" width="6" height="7" rx="1" stroke="url(#lg1)" stroke-width="1.2" fill="none"/></g>
-          <g transform="rotate(135)"><rect x="-3" y="-42" width="6" height="7" rx="1" stroke="url(#lg1)" stroke-width="1.2" fill="none"/></g>
-          <g transform="rotate(180)"><rect x="-3" y="-42" width="6" height="7" rx="1" stroke="url(#lg1)" stroke-width="1.2" fill="none"/></g>
-          <g transform="rotate(225)"><rect x="-3" y="-42" width="6" height="7" rx="1" stroke="url(#lg1)" stroke-width="1.2" fill="none"/></g>
-          <g transform="rotate(270)"><rect x="-3" y="-42" width="6" height="7" rx="1" stroke="url(#lg1)" stroke-width="1.2" fill="none"/></g>
-          <g transform="rotate(315)"><rect x="-3" y="-42" width="6" height="7" rx="1" stroke="url(#lg1)" stroke-width="1.2" fill="none"/></g>
-          </g>
-          <g transform="translate(105,100)"><path d="M 5,-38 A 42,42 0 0,1 40,-16" stroke="#00d4ff" stroke-width="1.8" fill="none"/><path d="M 40,-16 A 42,42 0 0,1 42,8" stroke="#00d4ff" stroke-width="1.8" fill="none"/><path d="M 42,8 A 42,42 0 0,1 28,32" stroke="#00d4ff" stroke-width="1.8" fill="none"/><line x1="5" y1="-38" x2="28" y2="32" stroke="#00d4ff" stroke-width="1.2" opacity="0.5"/><line x1="10" y1="-5" x2="20" y2="30" stroke="url(#lg1)" stroke-width="2.5" opacity="0.85"/><circle cx="22" cy="34" r="8" stroke="#00d4ff" stroke-width="1.8" fill="rgba(0,212,255,0.08)"/><circle cx="8" cy="-10" r="6" stroke="url(#lg1)" stroke-width="1.5" fill="rgba(255,255,255,0.04)"/></g>
-          <line x1="100" y1="55" x2="100" y2="148" stroke="#00d4ff" stroke-width="2" opacity="0.9"/>
-        </svg>
-      </div>
-      <div class="logo-text">AXIS<span>LAB</span></div>
-    </a>
-    <div class="nav-links">
-      <a onclick="scrollTo('plataforma')">Plataforma</a>
-      <a onclick="scrollTo('modulos')">Módulos</a>
-      <a onclick="scrollTo('tecnologia')">Tecnologia</a>
-      <a onclick="scrollTo('contato')">Contato</a>
-      <a class="nav-cta" onclick="scrollTo('contato')">ACESSO ANTECIPADO</a>
-    </div>
-    <button class="hamburger" id="hamburger" onclick="toggleMenu()">
-      <span></span><span></span><span></span>
-    </button>
+  <a class="nav-logo" href="#">AXIS<span>LAB</span></a>
+  <div class="nav-links">
+    <a href="#modulos">Módulos</a>
+    <a href="#workflow">Workflow</a>
+    <a href="#contato">Contato</a>
+    <a href="#contato" class="nav-cta">ACESSO ANTECIPADO</a>
   </div>
 </nav>
 
-<!-- MOBILE MENU -->
-<div class="mobile-menu" id="mobile-menu">
-  <a onclick="scrollTo('plataforma')">Plataforma</a>
-  <a onclick="scrollTo('modulos')">Módulos</a>
-  <a onclick="scrollTo('tecnologia')">Tecnologia</a>
-  <a onclick="scrollTo('contato')">Contato</a>
-  <a class="mob-cta" onclick="scrollTo('contato')">ACESSO ANTECIPADO</a>
-</div>
-
 <!-- HERO -->
 <section id="hero">
-  <div class="hero-glow"></div>
-  <div style="max-width:900px;animation:fadeUp 1s ease forwards">
-    <div class="hero-badge">
-      <div class="dot"></div>
-      <span>INTELIGÊNCIA ARTIFICIAL · ENGENHARIA AUTOMOTIVA</span>
-    </div>
-    <div class="hero-title">
-      <div class="white">O PRIMEIRO</div>
-      <div class="gradient">PROJETISTA INTELIGENTE</div>
-      <div class="white">INTEGRADO AO NX.</div>
-    </div>
-    <p class="hero-desc">A AxisLab é uma camada de inteligência sobre o Siemens NX e Teamcenter. Automatiza tarefas, responde dúvidas técnicas e gera apresentações — para que engenheiros foquem no que importa.</p>
-    <div class="hero-btns">
-      <a class="btn-primary" onclick="scrollTo('modulos')">VER PLATAFORMA</a>
-      <a class="btn-secondary" onclick="scrollTo('contato')">SOLICITAR DEMO</a>
-    </div>
-    <div class="hero-stats">
-      <div><div class="stat-num">3</div><div class="stat-label">MÓDULOS INTEGRADOS</div></div>
-      <div><div class="stat-num">NX +</div><div class="stat-label">TEAMCENTER</div></div>
-      <div><div class="stat-num">24/7</div><div class="stat-label">DISPONÍVEL</div></div>
-    </div>
+  <div class="hero-orb orb1"></div>
+  <div class="hero-orb orb2"></div>
+  <div class="hero-orb orb3"></div>
+
+  <p class="hero-eyebrow" id="hero-eyebrow">INTELIGÊNCIA ARTIFICIAL · ENGENHARIA AUTOMOTIVA</p>
+  <h1 class="hero-title" id="hero-title">
+    <div>O PRIMEIRO</div>
+    <div class="outline">PROJETISTA</div>
+    <div class="cyan">INTELIGENTE</div>
+  </h1>
+  <p class="hero-sub" id="hero-sub">Uma camada de inteligência sobre o Siemens NX e Teamcenter. A AxisLab projeta — enquanto as outras IAs apenas conversam.</p>
+  <div class="hero-btns" id="hero-btns">
+    <a href="#modulos" class="btn-glow">VER PLATAFORMA</a>
+    <a href="#contato" class="btn-outline">SOLICITAR DEMO</a>
+  </div>
+
+  <div class="scroll-hint">
+    <span>SCROLL</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
   </div>
 </section>
 
-<!-- PLATAFORMA -->
-<section id="plataforma" style="padding:100px 24px">
-  <div class="container">
-    <div class="reveal">
-      <div class="section-tag">A PLATAFORMA</div>
-      <div class="section-title">A maioria das IAs conversa.<br><span style="color:#00d4ff">A AxisLab projeta.</span></div>
-    </div>
-    <div class="reveal arch-box">
-      <div class="arch-flow">
-        <div class="arch-node" style="border:1px solid #e2f4ff22;background:#e2f4ff06"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#e2f4ff;letter-spacing:1px;margin-bottom:6px">ENGENHEIRO</div><div style="font-size:10px;color:#2a4a6a">Comando natural</div></div>
-        <div class="arch-arrow"><div class="arch-arrow-line"></div><span class="arch-arrow-icon">›</span></div>
-        <div class="arch-node" style="border:1px solid #00d4ff22;background:#00d4ff06"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#00d4ff;letter-spacing:1px;margin-bottom:6px">AXIS CORE</div><div style="font-size:10px;color:#2a4a6a">Motor de IA</div></div>
-        <div class="arch-arrow"><div class="arch-arrow-line"></div><span class="arch-arrow-icon">›</span></div>
-        <div class="arch-node" style="border:1px solid #a78bfa22;background:#a78bfa06"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#a78bfa;letter-spacing:1px;margin-bottom:6px">NX OPEN API</div><div style="font-size:10px;color:#2a4a6a">Integração CAD</div></div>
-        <div class="arch-arrow"><div class="arch-arrow-line"></div><span class="arch-arrow-icon">›</span></div>
-        <div class="arch-node" style="border:1px solid #10b98122;background:#10b98106"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#10b981;letter-spacing:1px;margin-bottom:6px">SIEMENS NX</div><div style="font-size:10px;color:#2a4a6a">Execução</div></div>
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <span class="marquee-item">SIEMENS NX</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">TEAMCENTER PLM</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">AXIS DRAW</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">AXIS PRESENT</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">AXIS ENGINEER</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">ENGENHARIA AUTOMOTIVA</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">NORMAS OEM</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">SOLDAGEM · CAE · FEA</span>
+    <span class="marquee-item accent">✦</span>
+    <!-- repeat for seamless -->
+    <span class="marquee-item">SIEMENS NX</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">TEAMCENTER PLM</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">AXIS DRAW</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">AXIS PRESENT</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">AXIS ENGINEER</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">ENGENHARIA AUTOMOTIVA</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">NORMAS OEM</span>
+    <span class="marquee-item accent">✦</span>
+    <span class="marquee-item">SOLDAGEM · CAE · FEA</span>
+    <span class="marquee-item accent">✦</span>
+  </div>
+</div>
+
+<!-- PANELS -->
+<div class="panels-wrap">
+
+  <!-- Panel 1 -->
+  <div class="panel">
+    <div class="panel-inner">
+      <div class="panel-text reveal-left">
+        <div class="section-label">AXIS DRAW</div>
+        <h2 class="panel-title">Desenho 2D.<br>Em segundos.</h2>
+        <p class="panel-desc">Conectado diretamente ao NX, o AXIS DRAW gera vistas, cotas e cortes automaticamente. O que levava horas, leva segundos.</p>
+        <div class="panel-features">
+          <div class="panel-feat">Vistas e cortes automáticos</div>
+          <div class="panel-feat">GD&T e cotas inteligentes</div>
+          <div class="panel-feat">Export PDF / DXF</div>
+          <div class="panel-feat">Organização automática de layers</div>
+        </div>
       </div>
-      <div class="arch-note">+ TEAMCENTER PLM — exportação e leitura de arquivos</div>
-    </div>
-  </div>
-</section>
-
-<!-- MÓDULOS -->
-<section id="modulos" style="padding:100px 24px">
-  <div class="container">
-    <div class="reveal">
-      <div class="section-tag">MÓDULOS</div>
-      <div class="section-title">Três módulos.<br>Um fluxo completo.</div>
-    </div>
-    <div class="reveal">
-      <div class="module-tabs">
-        <div class="module-tab active" id="tab-0" onclick="selectModule(0)" style="border-bottom-color:#00d4ff"><div class="module-tab-name" style="color:#00d4ff">AXIS DRAW</div></div>
-        <div class="module-tab" id="tab-1" onclick="selectModule(1)"><div class="module-tab-name" style="color:#a78bfa">AXIS PRESENT</div></div>
-        <div class="module-tab" id="tab-2" onclick="selectModule(2)"><div class="module-tab-name" style="color:#10b981">AXIS ENGINEER</div></div>
+      <div class="glass-card reveal-right" style="min-height:320px">
+        <div class="glass-card-glow" style="background:rgba(0,212,255,.08);top:-60px;right:-60px"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:rgba(0,212,255,.4);letter-spacing:3px;margin-bottom:24px">AXIS DRAW · PREVIEW</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="height:1px;background:rgba(255,255,255,.06)"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.3)">FRENTE</div>
+            <div style="width:120px;height:80px;border:1px solid rgba(0,212,255,.2);border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center">
+              <div style="width:60px;height:40px;border:1px solid rgba(0,212,255,.4)"></div>
+              <div style="position:absolute;top:4px;right:4px;width:1px;height:8px;background:rgba(0,212,255,.4)"></div>
+              <div style="position:absolute;bottom:4px;right:4px;width:1px;height:8px;background:rgba(0,212,255,.4)"></div>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.3)">LATERAL</div>
+            <div style="width:80px;height:80px;border:1px solid rgba(0,212,255,.2);border-radius:4px;display:flex;align-items:center;justify-content:center">
+              <div style="width:50px;height:50px;border:1px solid rgba(0,212,255,.3);border-radius:50%"></div>
+            </div>
+          </div>
+          <div style="height:1px;background:rgba(255,255,255,.06)"></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="width:6px;height:6px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981"></div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.3)">GERADO EM 2.4s · PDF EXPORTADO</div>
+          </div>
+        </div>
       </div>
-      <div class="module-grid" id="module-content"></div>
     </div>
   </div>
-</section>
 
-<!-- TECNOLOGIA -->
-<section id="tecnologia" style="padding:100px 24px;border-top:1px solid #080e18">
-  <div class="container">
+  <!-- Panel 2 -->
+  <div class="panel">
+    <div class="panel-inner reverse">
+      <div class="panel-text reveal-right">
+        <div class="section-label">AXIS PRESENT</div>
+        <h2 class="panel-title">Apresentação.<br>Automática.</h2>
+        <p class="panel-desc">Integrado ao NX e Teamcenter 14. Busca 2Ds, especificações e avaliações — e monta a apresentação para o cliente sozinho.</p>
+        <div class="panel-features">
+          <div class="panel-feat">Leitura automática do Teamcenter</div>
+          <div class="panel-feat">Importa PDFs, XMLs e JTs</div>
+          <div class="panel-feat">Gera PPT / PDF profissional</div>
+          <div class="panel-feat">Histórico completo de revisões</div>
+        </div>
+      </div>
+      <div class="glass-card reveal-left" style="min-height:320px">
+        <div class="glass-card-glow" style="background:rgba(124,58,237,.08);top:-60px;left:-60px"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:rgba(124,58,237,.6);letter-spacing:3px;margin-bottom:24px">AXIS PRESENT · PREVIEW</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:16px">
+            <div style="font-size:10px;color:rgba(255,255,255,.2);font-family:'DM Mono',monospace;margin-bottom:8px">TEAMCENTER → BUSCANDO</div>
+            <div style="display:flex;gap:8px">
+              <div style="padding:4px 10px;border:1px solid rgba(124,58,237,.3);border-radius:4px;font-size:10px;color:rgba(124,58,237,.6);font-family:'DM Mono',monospace">PDF</div>
+              <div style="padding:4px 10px;border:1px solid rgba(124,58,237,.3);border-radius:4px;font-size:10px;color:rgba(124,58,237,.6);font-family:'DM Mono',monospace">XML</div>
+              <div style="padding:4px 10px;border:1px solid rgba(124,58,237,.3);border-radius:4px;font-size:10px;color:rgba(124,58,237,.6);font-family:'DM Mono',monospace">JT</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="flex:1;height:1px;background:rgba(124,58,237,.2)"></div>
+            <div style="font-size:10px;color:rgba(124,58,237,.4);font-family:'DM Mono',monospace">GERANDO</div>
+            <div style="flex:1;height:1px;background:rgba(124,58,237,.2)"></div>
+          </div>
+          <div style="background:rgba(124,58,237,.05);border:1px solid rgba(124,58,237,.15);border-radius:8px;padding:16px;text-align:center">
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:rgba(255,255,255,.7);margin-bottom:4px">APRESENTAÇÃO PRONTA</div>
+            <div style="font-size:10px;color:rgba(124,58,237,.5);font-family:'DM Mono',monospace">12 SLIDES · PDF · PPT</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 3 -->
+  <div class="panel">
+    <div class="panel-inner">
+      <div class="panel-text reveal-left">
+        <div class="section-label">AXIS ENGINEER</div>
+        <h2 class="panel-title">Engenheiro<br>sênior. 24h.</h2>
+        <p class="panel-desc">IA treinada em engenharia automotiva com contexto real dos seus projetos. NX, Teamcenter, soldagem, CAE — sempre disponível.</p>
+        <div class="panel-features">
+          <div class="panel-feat">Contexto real dos seus projetos</div>
+          <div class="panel-feat">Normas AWS D1.1, ISO 2553, ABNT</div>
+          <div class="panel-feat">NX, Teamcenter, Soldagem, CAE</div>
+          <div class="panel-feat">Disponível 24/7 sem custo extra</div>
+        </div>
+      </div>
+      <div class="glass-card reveal-right" style="min-height:320px">
+        <div class="glass-card-glow" style="background:rgba(16,185,129,.06);bottom:-60px;right:-60px"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:rgba(16,185,129,.6);letter-spacing:3px;margin-bottom:24px">AXIS ENGINEER · LIVE</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px 16px 16px 16px;padding:12px 14px">
+            <div style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.6">"Qual solda usar no reforço B-pillar em HSLA 1.5mm?"</div>
+          </div>
+          <div style="background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.12);border-left:2px solid rgba(16,185,129,.4);border-radius:4px 16px 16px 16px;padding:12px 14px">
+            <div style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.6">Para HSLA 1.5mm em estrutura de carroceria, recomendo <span style="color:rgba(16,185,129,.8)">solda MIG GMAW</span> com arame ER70S-6, Ø1.2mm. Conforme <span style="color:rgba(16,185,129,.8)">AWS D1.1</span>...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODULES -->
+<section id="modulos" class="modules-section">
+  <div style="max-width:1200px;margin:0 auto">
     <div class="reveal">
-      <div class="section-tag">TECNOLOGIA</div>
-      <div class="section-title">Stack de engenharia.<br><span style="color:#00d4ff">Construído para o industrial.</span></div>
+      <div class="section-label">PLATAFORMA</div>
+      <h2 class="section-title">Três módulos.<br>Um fluxo completo.</h2>
     </div>
-    <div class="reveal tech-grid" id="tech-grid"></div>
+    <div class="modules-grid reveal">
+      <div class="module-card">
+        <div class="module-hover-glow" style="background:rgba(0,212,255,.06)"></div>
+        <div class="module-num">01 / 03</div>
+        <div class="module-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(0,212,255,.6)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+        </div>
+        <div class="module-name">AXIS DRAW</div>
+        <div class="module-desc">Geração automática de desenhos 2D a partir do modelo 3D no NX. Vistas, cotas, cortes e export PDF em segundos.</div>
+      </div>
+      <div class="module-card">
+        <div class="module-hover-glow" style="background:rgba(124,58,237,.06)"></div>
+        <div class="module-num">02 / 03</div>
+        <div class="module-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(124,58,237,.6)" stroke-width="1.5"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 18v2M16 18v2M5 22h14"/></svg>
+        </div>
+        <div class="module-name">AXIS PRESENT</div>
+        <div class="module-desc">Apresentações de venda geradas automaticamente a partir do NX e Teamcenter. PPT e PDF prontos para o cliente.</div>
+      </div>
+      <div class="module-card">
+        <div class="module-hover-glow" style="background:rgba(16,185,129,.06)"></div>
+        <div class="module-num">03 / 03</div>
+        <div class="module-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(16,185,129,.6)" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <div class="module-name">AXIS ENGINEER</div>
+        <div class="module-desc">Engenheiro mecânico sênior virtual. Conectado aos seus projetos reais no Teamcenter. Disponível 24 horas por dia.</div>
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- CONTATO -->
-<section id="contato" style="padding:120px 24px">
-  <div class="contact-box">
-    <div class="contact-glow"></div>
-    <div class="contact-tag">ACESSO ANTECIPADO</div>
-    <div class="contact-title">Seja o primeiro a usar<br>a AxisLab.</div>
-    <p class="contact-desc">Estamos selecionando empresas do setor automotivo e industrial para o programa de acesso antecipado. Vagas limitadas.</p>
-    <a class="btn-primary" href="mailto:contato@axislab.com.br">ENTRAR EM CONTATO</a>
-    <div class="contact-links">
-      <div class="contact-link"><span>✉</span> contato@axislab.com.br</div>
-      <div class="contact-link"><span>in</span> linkedin.com/company/axislab</div>
+<!-- WORKFLOW -->
+<section id="workflow" class="workflow-section">
+  <div class="workflow-inner">
+    <div class="reveal">
+      <div class="section-label">ARQUITETURA</div>
+      <h2 class="section-title">Do comando<br>ao CAD.</h2>
+    </div>
+    <div class="workflow-steps">
+      <div class="workflow-step reveal">
+        <div class="step-dot">01</div>
+        <div class="step-content">
+          <div class="step-title">Engenheiro envia o comando</div>
+          <div class="step-desc">Em linguagem natural — "criar reforço de underbody padrão FIAT" ou "gerar 2D desta peça com cotas". Sem código, sem configuração.</div>
+          <span class="step-tag">LINGUAGEM NATURAL</span>
+        </div>
+      </div>
+      <div class="workflow-step reveal">
+        <div class="step-dot">02</div>
+        <div class="step-content">
+          <div class="step-title">AXIS CORE interpreta e planeja</div>
+          <div class="step-desc">O motor de IA processa o comando com contexto de engenharia automotiva, normas OEM e histórico do projeto no Teamcenter.</div>
+          <span class="step-tag">LLM + RAG</span>
+        </div>
+      </div>
+      <div class="workflow-step reveal">
+        <div class="step-dot">03</div>
+        <div class="step-content">
+          <div class="step-title">Interpretador traduz para NX Open</div>
+          <div class="step-desc">Converte a intenção da IA em comandos executáveis do NX Open API — Extrude, Hole, AddBaseView, Dimensions.</div>
+          <span class="step-tag">NX OPEN PYTHON API</span>
+        </div>
+      </div>
+      <div class="workflow-step reveal">
+        <div class="step-dot">04</div>
+        <div class="step-content">
+          <div class="step-title">NX executa e entrega</div>
+          <div class="step-desc">O Siemens NX executa as operações CAD e retorna o resultado — modelo 3D, desenho 2D ou apresentação — para o engenheiro.</div>
+          <span class="step-tag">SIEMENS NX 2023+</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats-section">
+  <div class="stats-inner reveal">
+    <div class="stat-item">
+      <div class="stat-num">3<span class="unit">×</span></div>
+      <div class="stat-label">Mais rápido na geração de desenhos 2D</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">24<span class="unit">h</span></div>
+      <div class="stat-label">Engenheiro sênior disponível sem custo extra</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">100<span class="unit">%</span></div>
+      <div class="stat-label">Integrado ao seu ambiente NX e Teamcenter atual</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">0</div>
+      <div class="stat-label">Linhas de código necessárias pelo engenheiro</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="contato" class="cta-section">
+  <div class="cta-bg"></div>
+  <div class="reveal">
+    <h2 class="cta-title">
+      <div>SEJA O</div>
+      <div class="outline">PRIMEIRO.</div>
+    </h2>
+    <p class="cta-sub">Programa de acesso antecipado para empresas do setor automotivo e industrial. Vagas limitadas.</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+      <a href="mailto:contato@axislab.com.br" class="btn-glow">ENTRAR EM CONTATO</a>
+      <a href="#" class="btn-outline">SAIBA MAIS</a>
+    </div>
+    <div style="margin-top:48px;display:flex;gap:40px;justify-content:center;flex-wrap:wrap">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.2);letter-spacing:2px">✉ contato@axislab.com.br</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.2);letter-spacing:2px">in linkedin.com/company/axislab</div>
     </div>
   </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
-  <div class="footer-logo">
-    <div class="logo-icon" style="width:28px;height:28px;border-radius:6px">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <span class="logo-text">AXIS<span>LAB</span></span>
-  </div>
-  <div class="footer-copy">© 2025 AXISLAB — INTELIGÊNCIA ARTIFICIAL APLICADA À ENGENHARIA</div>
+  <div class="footer-logo">AXIS<span>LAB</span></div>
+  <div class="footer-copy">© 2025 AXISLAB — ENGINEERING INTELLIGENCE</div>
 </footer>
 
 <!-- CHAT WIDGET -->
@@ -358,21 +989,21 @@ footer{border-top:1px solid #080e18;padding:32px;text-align:center;position:rela
   </div>
   <div class="chat-panel" id="chat-panel" style="display:none">
     <div class="chat-header">
-      <div style="display:flex;align-items:center">
-        <div class="chat-avatar">AE</div>
-        <div class="chat-header-info">
-          <div class="chat-header-name">AXIS ENGINEER</div>
-          <div class="chat-header-status"><div class="online-dot"></div><span class="online-text">ONLINE</span></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="chat-av">AE</div>
+        <div>
+          <div class="chat-hname">AXIS ENGINEER</div>
+          <div class="chat-hstatus"><div class="online-dot"></div><span class="online-text">ONLINE</span></div>
         </div>
       </div>
-      <button class="chat-close" onclick="toggleChat()">✕</button>
+      <button class="chat-close-btn" onclick="toggleChat()">✕</button>
     </div>
-    <div class="chat-messages" id="chat-messages"></div>
-    <div class="chat-input-area">
-      <div class="chat-input-wrap">
-        <input class="chat-input" id="chat-input" placeholder="Pergunta técnica..." onkeydown="if(event.key==='Enter')sendMsg()" oninput="updateSendBtn()"/>
-        <button class="chat-send" id="chat-send-btn" onclick="sendMsg()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="#1a3a5a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="send-icon"/></svg>
+    <div class="chat-msgs" id="chat-msgs"></div>
+    <div class="chat-input-wrap">
+      <div class="chat-input-inner">
+        <input class="chat-input" id="chat-input" placeholder="Pergunta técnica..." onkeydown="if(event.key==='Enter')sendMsg()" oninput="updateSend()"/>
+        <button class="chat-send" id="chat-send" onclick="sendMsg()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="rgba(0,212,255,.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="send-icon"/></svg>
         </button>
       </div>
     </div>
@@ -381,179 +1012,126 @@ footer{border-top:1px solid #080e18;padding:32px;text-align:center;position:rela
 </div>
 
 <script>
-// ---- DATA ----
-const MODULES = [
-  {
-    color:"#00d4ff",tag:"MÓDULO 01",name:"AXIS DRAW",
-    headline:"Desenho 2D automático a partir do modelo 3D.",
-    desc:"Conectado ao NX, gera vistas, cotas, cortes e tabelas de revisão automaticamente. O que levava horas, leva segundos.",
-    features:["Vistas automáticas","GD&T e cotas","Cortes e detalhes","Export PDF / DXF","Organização de layers"]
-  },
-  {
-    color:"#a78bfa",tag:"MÓDULO 02",name:"AXIS PRESENT",
-    headline:"Apresentações de venda geradas em segundos.",
-    desc:"Integrado ao NX e Teamcenter, busca 2Ds, especificações e avaliações e monta automaticamente o material de apresentação para o cliente.",
-    features:["Leitura do Teamcenter","Importa 2Ds e specs","Gera PPT / PDF","Padrão visual da empresa","Histórico de revisões"]
-  },
-  {
-    color:"#10b981",tag:"MÓDULO 03",name:"AXIS ENGINEER",
-    headline:"Engenheiro mecânico sênior disponível 24h.",
-    desc:"IA treinada em engenharia automotiva, normas OEM e conectada aos seus projetos reais no Teamcenter.",
-    features:["NX e Teamcenter","Soldagem e CAE","Normas AWS / ABNT","Contexto do seu projeto","Disponível 24/7"]
-  }
-];
+// ---- CURSOR ----
+const cur=document.getElementById('cursor');
+const curR=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+function animRing(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(animRing);}
+animRing();
 
-const TECH = [
-  {name:"NX Open API",desc:"Integração direta com Siemens NX",color:"#00d4ff"},
-  {name:"Teamcenter PLM",desc:"Leitura de arquivos exportados",color:"#00d4ff"},
-  {name:"LLM + RAG",desc:"IA com contexto dos seus projetos",color:"#a78bfa"},
-  {name:"Python FastAPI",desc:"Backend de alta performance",color:"#a78bfa"},
-  {name:"Computer Vision",desc:"Reconhecimento de geometria 3D",color:"#10b981"},
-  {name:"React / Next.js",desc:"Interface moderna e responsiva",color:"#10b981"},
-];
+// ---- LOADER ----
+const loaderEl=document.getElementById('loader');
+const logoEl=document.querySelector('.loader-logo');
+const pctEl=document.getElementById('loader-pct');
+const msgs=['INITIALIZING','LOADING MODULES','CONNECTING AI','READY'];
+let p=0;
+gsap.to(logoEl,{opacity:1,duration:.5,delay:.2});
+const tick=setInterval(()=>{
+  p+=Math.random()*25;
+  if(p>=100){p=100;clearInterval(tick);}
+  const idx=Math.floor(p/100*msgs.length);
+  pctEl.textContent=msgs[Math.min(idx,msgs.length-1)]+' — '+Math.floor(p)+'%';
+},200);
+setTimeout(()=>{
+  gsap.to(loaderEl,{opacity:0,duration:.8,delay:.3,onComplete:()=>{
+    loaderEl.style.display='none';
+    gsap.to('#navbar',{opacity:1,duration:.6});
+    gsap.from('#hero-eyebrow',{opacity:0,y:20,duration:.8,delay:.2});
+    gsap.from('.hero-title div',{opacity:0,y:60,duration:1,stagger:.15,delay:.3,ease:'power3.out'});
+    gsap.from('#hero-sub',{opacity:0,y:30,duration:.8,delay:.8});
+    gsap.from('#hero-btns',{opacity:0,y:20,duration:.8,delay:1});
+  }});
+},2500);
 
-// ---- N8N WEBHOOK ----
-const N8N_WEBHOOK = "https://luiz500.app.n8n.cloud/webhook/e5616171-e3b5-4c39-81d4-67409f9fa60a/chat";
+// ---- SCROLL REVEAL ----
+const revObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');}});
+},{threshold:.1});
+document.querySelectorAll('.reveal,.reveal-left,.reveal-right').forEach(el=>revObs.observe(el));
 
-// ---- INIT ----
-let currentModule = 0;
-let chatOpen = false;
-let chatHistory = [];
-let chatLoading = false;
-
-function scrollTo(id){
-  document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
-  document.getElementById('mobile-menu').style.display='none';
-  document.getElementById('hamburger').classList.remove('open');
-}
-
-function toggleMenu(){
-  const m=document.getElementById('mobile-menu');
-  const h=document.getElementById('hamburger');
-  const open=m.style.display==='block';
-  m.style.display=open?'none':'block';
-  h.classList.toggle('open',!open);
-}
-
+// ---- PARALLAX ORBS ----
 window.addEventListener('scroll',()=>{
-  document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>40);
+  const s=window.scrollY;
+  document.querySelector('.orb1').style.transform=`translateX(-50%) translateY(${s*.15}px)`;
+  document.querySelector('.orb2').style.transform=`translateY(${-s*.1}px)`;
 });
 
-// Reveal on scroll
-const observer=new IntersectionObserver(entries=>{
-  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
-},{threshold:.15});
-document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
-
-// ---- MODULES ----
-function selectModule(i){
-  currentModule=i;
-  [0,1,2].forEach(j=>{
-    const t=document.getElementById('tab-'+j);
-    const m=MODULES[j];
-    t.classList.toggle('active',j===i);
-    t.style.borderBottomColor=j===i?m.color:'transparent';
-    t.style.opacity=j===i?'1':'0.4';
-  });
-  renderModule();
-}
-
-function renderModule(){
-  const m=MODULES[currentModule];
-  const hex=m.color.replace('#','');
-  document.getElementById('module-content').innerHTML=`
-    <div class="module-card" style="border:1px solid ${m.color}22;background:${m.color}04">
-      <div class="module-tag" style="color:${m.color}">${m.tag}</div>
-      <div class="module-headline">${m.headline}</div>
-      <p class="module-desc">${m.desc}</p>
-    </div>
-    <div class="features-card">
-      <div class="features-label">FUNCIONALIDADES</div>
-      ${m.features.map((f,i)=>`<div class="feature-item" style="${i===m.features.length-1?'border:none':''}">
-        <div class="feature-dot" style="background:${m.color};box-shadow:0 0 6px ${m.color}"></div>
-        ${f}
-      </div>`).join('')}
-    </div>`;
-}
-
-// ---- TECH ----
-function renderTech(){
-  document.getElementById('tech-grid').innerHTML=TECH.map(t=>`
-    <div class="tech-card" style="border:1px solid ${t.color}18;background:${t.color}04" onmouseenter="this.style.borderColor='${t.color}44';this.style.background='${t.color}08'" onmouseleave="this.style.borderColor='${t.color}18';this.style.background='${t.color}04'">
-      <div class="tech-name" style="color:${t.color}">${t.name}</div>
-      <div class="tech-desc">${t.desc}</div>
-    </div>`).join('');
-}
+// ---- NAV SCROLL ----
+window.addEventListener('scroll',()=>{
+  const n=document.getElementById('navbar');
+  if(window.scrollY>60){
+    n.style.background='rgba(2,4,8,.95)';
+    n.style.backdropFilter='blur(20px)';
+    n.style.borderBottom='1px solid rgba(255,255,255,.06)';
+  }else{
+    n.style.background='transparent';
+    n.style.backdropFilter='none';
+    n.style.borderBottom='none';
+  }
+});
 
 // ---- CHAT ----
+const N8N='https://luiz500.app.n8n.cloud/webhook/e5616171-e3b5-4c39-81d4-67409f9fa60a/chat';
+let chatOpen=false,chatHistory=[],chatLoading=false;
+
 function toggleChat(){
   chatOpen=!chatOpen;
   document.getElementById('chat-panel').style.display=chatOpen?'flex':'none';
   document.getElementById('chat-tooltip').style.display='none';
   document.getElementById('chat-btn').textContent=chatOpen?'✕':'AE';
-  if(chatOpen && chatHistory.length===0) initChat();
+  if(chatOpen&&chatHistory.length===0)initChat();
 }
 
 function initChat(){
   addMsg('ae','Olá! Sou o AXIS ENGINEER.\n\nDescreva seu problema técnico ou tire uma dúvida sobre NX, Teamcenter, soldagem ou engenharia automotiva.');
 }
 
-function addMsg(role, text){
+function addMsg(role,text){
   chatHistory.push({role,text});
-  renderMessages();
+  renderMsgs();
 }
 
-function renderMessages(){
-  const c=document.getElementById('chat-messages');
+function renderMsgs(){
+  const c=document.getElementById('chat-msgs');
   c.innerHTML=chatHistory.map(m=>`
-    <div class="msg-wrap ${m.role}">
-      ${m.role==='ae'?'<div class="msg-avatar">AE</div>':''}
+    <div class="msg-row ${m.role}">
+      ${m.role==='ae'?'<div class="msg-av">AE</div>':''}
       <div class="msg-bubble ${m.role}">${m.text}</div>
     </div>`).join('');
-  if(chatLoading) c.innerHTML+=`<div class="msg-wrap ae"><div class="msg-avatar">AE</div><div class="msg-bubble ae"><div class="typing-dots"><div class="typing-dot" style="animation-delay:0s"></div><div class="typing-dot" style="animation-delay:.2s"></div><div class="typing-dot" style="animation-delay:.4s"></div></div></div></div>`;
+  if(chatLoading)c.innerHTML+=`<div class="msg-row ae"><div class="msg-av">AE</div><div class="msg-bubble ae"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
   c.scrollTop=c.scrollHeight;
 }
 
-function updateSendBtn(){
-  const val=document.getElementById('chat-input').value.trim();
-  const btn=document.getElementById('chat-send-btn');
-  const icon=document.getElementById('send-icon');
-  btn.classList.toggle('active',val.length>0);
-  icon.setAttribute('stroke',val.length>0?'#00d4ff':'#1a3a5a');
+function updateSend(){
+  const v=document.getElementById('chat-input').value.trim();
+  const b=document.getElementById('chat-send');
+  b.classList.toggle('active',v.length>0);
+  document.getElementById('send-icon').setAttribute('stroke',v.length>0?'rgba(0,212,255,.8)':'rgba(0,212,255,.2)');
 }
 
 async function sendMsg(){
-  const input=document.getElementById('chat-input');
-  const text=input.value.trim();
-  if(!text||chatLoading) return;
-  input.value='';
-  updateSendBtn();
+  const inp=document.getElementById('chat-input');
+  const text=inp.value.trim();
+  if(!text||chatLoading)return;
+  inp.value='';updateSend();
   addMsg('user',text);
-  chatLoading=true;
-  renderMessages();
-
+  chatLoading=true;renderMsgs();
   try{
-    const res=await fetch(N8N_WEBHOOK,{
-      method:'POST',
-      mode:'cors',
+    const res=await fetch(N8N,{
+      method:'POST',mode:'cors',
       headers:{'Content-Type':'application/json','Accept':'application/json'},
       body:JSON.stringify({chatInput:text,sessionId:'axislab-web'})
     });
-    if(!res.ok) throw new Error('HTTP '+res.status);
+    if(!res.ok)throw new Error('HTTP '+res.status);
     const data=await res.json();
-    const reply=data.output||data.text||data.message||data.response||data.answer||
-                (typeof data==='string'?data:JSON.stringify(data));
-    chatLoading=false;
-    addMsg('ae',reply);
+    const reply=data.output||data.text||data.message||data.response||(typeof data==='string'?data:JSON.stringify(data));
+    chatLoading=false;addMsg('ae',reply);
   }catch(e){
     chatLoading=false;
-    addMsg('ae','Erro: '+e.message+'\n\nVerifique:\n1. Workflow publicado no n8n?\n2. Toggle "Publicar" está ligado?');
+    addMsg('ae','Erro de conexão com o AXIS ENGINEER.\n\nVerifique se o workflow está publicado no n8n.');
   }
 }
-
-// ---- INIT ----
-renderModule();
-renderTech();
 </script>
 </body>
 </html>
